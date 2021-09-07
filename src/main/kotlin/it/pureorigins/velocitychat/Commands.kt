@@ -11,6 +11,10 @@ import com.velocitypowered.api.command.BrigadierCommand
 import com.velocitypowered.api.command.CommandManager
 import com.velocitypowered.api.command.CommandSource
 
+interface VelocityCommand {
+    val command: LiteralCommandNode<CommandSource>
+}
+
 inline fun literal(name: String, block: LiteralArgumentBuilder<CommandSource>.() -> Unit) =
     LiteralArgumentBuilder.literal<CommandSource>(name).apply(block).build()!!
 
@@ -26,4 +30,4 @@ inline fun RequiredArgumentBuilder<CommandSource, *>.success(crossinline block: 
 inline fun LiteralArgumentBuilder<CommandSource>.success(crossinline block: (CommandContext<CommandSource>) -> Unit) =
     executes { block(it); Command.SINGLE_SUCCESS }!!
 
-fun CommandManager.register(node: LiteralCommandNode<CommandSource>) = register(BrigadierCommand(node))
+fun CommandManager.register(command: VelocityCommand) = register(BrigadierCommand(command.command))

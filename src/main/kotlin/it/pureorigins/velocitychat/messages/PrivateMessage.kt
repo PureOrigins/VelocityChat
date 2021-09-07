@@ -1,13 +1,14 @@
-package it.pureorigins.velocitychat
+package it.pureorigins.velocitychat.messages
 
 import com.mojang.brigadier.arguments.StringArgumentType.*
 import com.velocitypowered.api.proxy.Player
 import com.velocitypowered.api.proxy.ProxyServer
+import it.pureorigins.velocitychat.*
 import it.pureorigins.velocityconfiguration.templateComponent
 import kotlinx.serialization.Serializable
 
-class PrivateMessageCommand(private val server: ProxyServer, private val config: Config) {
-    val command get() = literal(config.name) {
+class PrivateMessageCommand(private val server: ProxyServer, private val config: Config) : VelocityCommand {
+    override val command get() = literal(config.name) {
         requires {
             it.hasPermission("chat.msg")
         }
@@ -36,7 +37,7 @@ class PrivateMessageCommand(private val server: ProxyServer, private val config:
             val player = server.getPlayer(playerName).orElse(null)
             val message = getString(context, "message")
             if (player == null) {
-                context.source.sendMessage(config.invalidPlayer.templateComponent("player" to player))
+                context.source.sendMessage(config.invalidPlayer.templateComponent("player" to playerName))
                 return@success
             }
             val sender = context.source as? Player
@@ -48,8 +49,8 @@ class PrivateMessageCommand(private val server: ProxyServer, private val config:
     @Serializable
     data class Config(
         val name: String = "msg",
-        val usage: String = "Usage: /msg <player> <text>",
-        val invalidPlayer: String = "Invalid player.",
+        val usage: String = "Usage: /msg <player> <message>",
+        val invalidPlayer: String = "\${player} is not online.",
         val messageSent: String = "Message sent.",
         val message: String = "Message received from <#if sender??>\${sender.username}<#else>Server</#if>: \${message}"
     )

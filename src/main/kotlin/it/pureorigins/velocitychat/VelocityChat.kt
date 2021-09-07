@@ -7,6 +7,8 @@ import com.velocitypowered.api.plugin.Plugin
 import com.velocitypowered.api.plugin.Dependency
 import com.velocitypowered.api.plugin.annotation.DataDirectory
 import com.velocitypowered.api.proxy.ProxyServer
+import it.pureorigins.velocitychat.messages.PrivateMessageCommand
+import it.pureorigins.velocitychat.party.Parties
 import it.pureorigins.velocityconfiguration.json
 import it.pureorigins.velocityconfiguration.readFileAs
 import kotlinx.serialization.Serializable
@@ -24,12 +26,16 @@ class VelocityChat @Inject constructor(
     
     @Subscribe
     fun onInit(event: ProxyInitializeEvent) {
-        val (msg) = json.readFileAs(dataDirectory.resolve("velocity_chat.json"), Config())
-        commands.register(PrivateMessageCommand(server, msg).command)
+        val (msg, party) = json.readFileAs(dataDirectory.resolve("velocity_chat.json"), Config())
+        val parties = Parties(server, party)
+        events.register(this, parties)
+        commands.register(PrivateMessageCommand(server, msg))
+        commands.register(parties)
     }
     
     @Serializable
     data class Config(
-        val msg: PrivateMessageCommand.Config = PrivateMessageCommand.Config()
+        val msg: PrivateMessageCommand.Config = PrivateMessageCommand.Config(),
+        val party: Parties.Config = Parties.Config()
     )
 }
