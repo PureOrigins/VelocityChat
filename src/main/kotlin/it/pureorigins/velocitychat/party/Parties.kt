@@ -46,6 +46,8 @@ class Parties(
                 party.invite(player)
                 requests.putIfAbsent(player, mutableSetOf())
                 requests[player]!! += party
+                player.sendMessage(config.request.templateComponent("player" to player))
+                sender.sendMessage(config.requestSent.templateComponent("player" to sender))
                 if (config.inviteSound != null) {
                     player.playSound(Sound.sound(Key.key(config.inviteSound.key), Sound.Source.MASTER, config.inviteSound.volume, config.inviteSound.pitch), Sound.Emitter.self())
                 }
@@ -261,7 +263,11 @@ class Parties(
         success { context ->
             val sender = context.source as? Player ?: return@success
             val party = fromMember(sender)
-            sender.sendMessage(config.partyInfo.templateComponent("party" to party))
+            if (party != null) {
+                sender.sendMessage(config.partyInfo.templateComponent("party" to party))
+            } else {
+                sender.sendMessage(config.notInParty.templateComponent())
+            }
         }
     }
     
