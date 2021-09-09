@@ -5,6 +5,7 @@ import com.mojang.brigadier.arguments.StringArgumentType.word
 import com.velocitypowered.api.event.EventTask.async
 import com.velocitypowered.api.event.Subscribe
 import com.velocitypowered.api.event.connection.DisconnectEvent
+import com.velocitypowered.api.event.player.PlayerChatEvent
 import com.velocitypowered.api.proxy.Player
 import com.velocitypowered.api.proxy.ProxyServer
 import it.pureorigins.velocitychat.*
@@ -126,6 +127,29 @@ class Parties(
         left(event.player)
     }
     
+    @Subscribe
+    fun onPlayerChat(event: PlayerChatEvent) = async {
+        val message = event.message
+        val player = event.player
+        val party = fromMember(player)
+        if (party == null) return@async
+        if (config.useChatPrefixForPartyChat) {
+            if (message.startsWith(config.chatPrefix)) {
+                party.sendMessage(config.format.templateComponent("player" to player, "message" to message.substring(config.chatPrefix.length)))
+                PlayerChatEvent.ChatResult.denied()
+            } else {
+                PlayerChatEvent.ChatResult.allowed()
+            }
+        } else {
+            if (message.startsWith(config.chatPrefix)) {
+                PlayerChatEvent.ChatResult.message(message.substring(config.chatPrefix.length))
+            } else {
+                party.sendMessage(config.format.templateComponent("player" to player, "message" to message))
+                PlayerChatEvent.ChatResult.denied()
+            }
+        }
+    }
+    
     override val command get() = literal(config.commandName) {
         requires {
             it is Player && it.hasPermission("chat.party")
@@ -243,6 +267,9 @@ class Parties(
     
     @Serializable
     data class Config(
+        val format: String = "[{\"text\": \"\${player.username}\", \"color\": \"aqua\", \"clickEvent\": {\"action\": \"suggest_command\", \"value\": \"/msg \${player.username} \"}, \"hoverEvent\": {\"action\": \"show_text\", \"value\": \"send message\"}}, {\"text\": \" » \${message}\", \"color\": \"aqua\"}]",
+        val chatPrefix: String = "!",
+        val useChatPrefixForPartyChat: Boolean = false,
         val requestExpirationTime: Long = 60,
         val request: String = "\${player.username} invited you to his party.",
         val requestSent: String = "Request sent.",
