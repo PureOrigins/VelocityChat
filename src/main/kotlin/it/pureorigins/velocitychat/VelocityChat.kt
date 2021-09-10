@@ -18,16 +18,17 @@ import java.nio.file.Path
 @Plugin(id = "velocity-chat", name = "Chat", version = "1.0.0", url = "https://github.com/PureOrigins/VelocityChat",
     description = "Chat utilities", dependencies = [Dependency(id = "velocity-language-kotlin"), Dependency(id = "velocity-configuration")], authors = ["AgeOfWar", "ekardnamm"])
 class VelocityChat @Inject constructor(
-    private val server: ProxyServer,
+    val server: ProxyServer,
     @DataDirectory private val dataDirectory: Path
 ) {
-    private val commands get() = server.commandManager
-    private val events get() = server.eventManager
+    val commands get() = server.commandManager
+    val events get() = server.eventManager
+    val scheduler get() = server.scheduler
     
     @Subscribe
     fun onInit(event: ProxyInitializeEvent) {
         val (msg, party) = json.readFileAs(dataDirectory.resolve("velocity_chat.json"), Config())
-        val parties = Parties(server, party)
+        val parties = Parties(this, party)
         events.register(this, parties)
         commands.register(PrivateMessageCommand(server, msg))
         commands.register(parties)

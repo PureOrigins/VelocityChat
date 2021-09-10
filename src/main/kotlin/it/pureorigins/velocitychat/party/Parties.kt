@@ -7,7 +7,6 @@ import com.velocitypowered.api.event.Subscribe
 import com.velocitypowered.api.event.connection.DisconnectEvent
 import com.velocitypowered.api.event.player.PlayerChatEvent
 import com.velocitypowered.api.proxy.Player
-import com.velocitypowered.api.proxy.ProxyServer
 import it.pureorigins.velocitychat.*
 import it.pureorigins.velocityconfiguration.templateComponent
 import kotlinx.serialization.Serializable
@@ -16,7 +15,7 @@ import net.kyori.adventure.sound.Sound
 import java.util.concurrent.TimeUnit
 
 class Parties(
-    private val server: ProxyServer,
+    private val plugin: VelocityChat,
     private val config: Config,
     private val parties: MutableMap<Player, Party> = mutableMapOf(),
     private val requests: MutableMap<Player, MutableSet<Party>> = mutableMapOf()
@@ -46,12 +45,12 @@ class Parties(
                 party.invite(player)
                 requests.putIfAbsent(player, mutableSetOf())
                 requests[player]!! += party
-                player.sendMessage(config.request.templateComponent("player" to player))
-                sender.sendMessage(config.requestSent.templateComponent("player" to sender))
+                player.sendMessage(config.request.templateComponent("player" to sender))
+                sender.sendMessage(config.requestSent.templateComponent("player" to player))
                 if (config.inviteSound != null) {
                     player.playSound(Sound.sound(Key.key(config.inviteSound.key), Sound.Source.MASTER, config.inviteSound.volume, config.inviteSound.pitch), Sound.Emitter.self())
                 }
-                server.scheduleAfter(config.requestExpirationTime, TimeUnit.SECONDS) {
+                plugin.scheduleAfter(config.requestExpirationTime, TimeUnit.SECONDS) {
                     if (player in party.requests) {
                         cancelInvite(sender, player)
                     }
@@ -135,7 +134,7 @@ class Parties(
         val player = event.player
         val party = fromMember(player)
         if (party == null) return@async
-        if (config.useChatPrefixForPartyChat) {
+        event.result = if (config.useChatPrefixForPartyChat) {
             if (message.startsWith(config.chatPrefix)) {
                 party.sendMessage(config.format.templateComponent("player" to player, "message" to message.substring(config.chatPrefix.length)))
                 PlayerChatEvent.ChatResult.denied()
@@ -177,7 +176,7 @@ class Parties(
             suggests { context ->
                 val player = context.source as? Player ?: return@suggests
                 val party = fromMember(player) ?: return@suggests
-                server.allPlayers.forEach {
+                plugin.server.allPlayers.forEach {
                     if (it !in party.members && it !in party.requests) {
                         suggest(it.username)
                     }
@@ -185,7 +184,7 @@ class Parties(
             }
             success { context ->
                 val playerName = getString(context, "player")
-                val player = server.getPlayer(playerName).orElse(null)
+                val player = plugin.server.getPlayer(playerName).orElse(null)
                     ?: return@success context.source.sendMessage(config.invalidPlayer.templateComponent("player" to playerName))
                 val sender = context.source as? Player ?: return@success
                 invite(sender, player)
@@ -209,7 +208,7 @@ class Parties(
             }
             success { context ->
                 val playerName = getString(context, "player")
-                val player = server.getPlayer(playerName).orElse(null)
+                val player = plugin.server.getPlayer(playerName).orElse(null)
                     ?: return@success context.source.sendMessage(config.invalidPlayer.templateComponent("player" to playerName))
                 val sender = context.source as? Player ?: return@success
                 accept(sender, player)
@@ -248,7 +247,7 @@ class Parties(
             }
             success { context ->
                 val playerName = getString(context, "player")
-                val player = server.getPlayer(playerName).orElse(null)
+                val player = plugin.server.getPlayer(playerName).orElse(null)
                     ?: return@success context.source.sendMessage(config.invalidPlayer.templateComponent("player" to playerName))
                 val sender = context.source as? Player ?: return@success
                 kick(sender, player)
