@@ -75,10 +75,10 @@ class Parties(
             else -> {
                 left(sender)
                 sender.sendMessage(config.inviteAccepted.templateComponent("player" to player)) // sender won't see newMember message
-                party.sendMessage(config.newMember.templateComponent("player" to player))
-                party.accept(player)
-                requests[player]!! -= party
-                parties[player] = party
+                party.sendMessage(config.newMember.templateComponent("player" to sender))
+                party.accept(sender)
+                requests[sender]!! -= party
+                parties[sender] = party
             }
         }
     }
@@ -175,10 +175,18 @@ class Parties(
         then(argument("player", word()) {
             suggests { context ->
                 val player = context.source as? Player ?: return@suggests
-                val party = fromMember(player) ?: return@suggests
-                plugin.server.allPlayers.forEach {
-                    if (it !in party.members && it !in party.requests) {
-                        suggest(it.username)
+                val party = fromMember(player)
+                if (party == null) {
+                    plugin.server.allPlayers.forEach {
+                        if (it != player) {
+                            suggest(it.username)
+                        }
+                    }
+                } else {
+                    plugin.server.allPlayers.forEach {
+                        if (it !in party.members && it !in party.requests) {
+                            suggest(it.username)
+                        }
                     }
                 }
             }
@@ -298,7 +306,7 @@ class Parties(
         val cannotInviteSelf: String = "You cannot invite yourself.",
         val partyInfo: String = "\${party}",
         val commandName: String = "party",
-        val commandUsage: String = "Usage: /party <invite|accept|leave|kick|info>",
+        val commandUsage: String = "Usage: /party <invite | accept | leave | kick | info>",
         val inviteCommandName: String = "invite",
         val inviteCommandUsage: String = "Usage: /party invite <player>",
         val acceptCommandName: String = "accept",
