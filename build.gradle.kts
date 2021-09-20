@@ -15,7 +15,8 @@ repositories {
 
 dependencies {
     compileOnly("com.velocitypowered:velocity-api:3.0.0")
-    compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.2.1")
-    compileOnly("com.github.PureOrigins:VelocityConfiguration:1.0.0")
+    compileOnly("com.github.PureOrigins:velocity-language-kotlin:1.0.0")
+    compileOnly("com.github.PureOrigins:VelocityConfiguration:1.0.1")
+    compileOnly("com.github.PureOrigins:VelocityFriends:1.0.0")
     kapt("com.velocitypowered:velocity-api:3.0.0")
 }

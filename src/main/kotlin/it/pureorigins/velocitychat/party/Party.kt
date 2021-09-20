@@ -34,7 +34,8 @@ data class Party(
     }
 }
 
-fun Party.sendMessage(message: Component) {
+fun Party.sendMessage(message: Component?) {
+    if (message == null) return
     members.forEach {
         it.sendMessage(message)
     }
