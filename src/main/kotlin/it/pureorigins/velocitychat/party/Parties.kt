@@ -170,7 +170,7 @@ class Parties(
         then(infoCommand)
     }
     
-    val inviteCommand get() = literal(config.invite.commandName) {
+    private val inviteCommand get() = literal(config.invite.commandName) {
         requires {
             it.hasPermission("chat.party.invite")
         }
@@ -205,7 +205,7 @@ class Parties(
         })
     }
     
-    val acceptCommand get() = literal(config.accept.commandName) {
+    private val acceptCommand get() = literal(config.accept.commandName) {
         requires {
             it.hasPermission("chat.party.accept")
         }
@@ -229,7 +229,7 @@ class Parties(
         })
     }
     
-    val leaveCommand get() = literal(config.leave.commandName) {
+    private val leaveCommand get() = literal(config.leave.commandName) {
         requires {
             it.hasPermission("chat.party.leave")
         }
@@ -239,7 +239,7 @@ class Parties(
         }
     }
     
-    val kickCommand get() = literal(config.kick.commandName) {
+    private val kickCommand get() = literal(config.kick.commandName) {
         requires {
             it.hasPermission("chat.party.kick")
         }
@@ -268,7 +268,7 @@ class Parties(
         })
     }
     
-    val infoCommand get() = literal(config.info.commandName) {
+    private val infoCommand get() = literal(config.info.commandName) {
         requires {
             it.hasPermission("chat.party.info")
         }
