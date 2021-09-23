@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit
 
 class Parties(
     private val plugin: VelocityChat,
-    private val friends: VelocityFriends,
+    private val friends: VelocityFriends?,
     private val config: Config,
     private val parties: MutableMap<Player, Party> = mutableMapOf(),
     private val requests: MutableMap<Player, MutableSet<Party>> = mutableMapOf()
@@ -38,6 +38,7 @@ class Parties(
         when {
             party.owner != sender -> return sender.sendMessage(config.invite.notAnOwner?.templateComponent("player" to player, "owner" to party.owner))
             sender == player -> return sender.sendMessage(config.invite.cannotInviteSelf?.templateComponent())
+            friends != null && !friends.isFriend(sender, player) -> return sender.sendMessage(config.invite.notFriend?.templateComponent("player" to player))
             player in party.members -> return sender.sendMessage(config.invite.alreadyInParty?.templateComponent("player" to player))
             player in party.requests -> return sender.sendMessage(config.invite.alreadyRequested?.templateComponent("player" to player))
             else -> {
@@ -308,8 +309,9 @@ class Parties(
         data class Invite(
             val commandName: String = "invite",
             val commandUsage: String? = "[{\"text\": \"Usage: \", \"color\": \"dark_gray\"}, {\"text\": \"/party invite <player>\", \"color\": \"gray\"}]",
-            val playerNotFound: String? = "[{\"text\": \"\${player.username}\", \"color\": \"gold\", \"clickEvent\": {\"action\": \"suggest_command\", \"value\": \"/msg \${player.username} \"}, \"hoverEvent\": {\"action\": \"show_text\", \"value\": \"send message\"}}, {\"text\": \" is not online.\", \"color\": \"dark_gray\"}]",
+            val playerNotFound: String? = "[{\"text\": \"\${player}\", \"color\": \"gold\", \"clickEvent\": {\"action\": \"suggest_command\", \"value\": \"/msg \${player} \"}, \"hoverEvent\": {\"action\": \"show_text\", \"value\": \"send message\"}}, {\"text\": \" is not online.\", \"color\": \"dark_gray\"}]",
             val cannotInviteSelf: String? = "{\"text\": \"You cannot invite yourself.\", \"color\": \"dark_gray\"}",
+            val notFriend: String? = "[{\"text\": \"Only friends can invite \", \"color\": \"dark_gray\"}, {\"text\": \"\${player.username}\", \"color\": \"gold\", \"clickEvent\": {\"action\": \"suggest_command\", \"value\": \"/msg \${player.username} \"}, \"hoverEvent\": {\"action\": \"show_text\", \"value\": \"send message\"}}, {\"text\": \".\", \"color\": \"dark_gray\"}]",
             val notAnOwner: String? = "{\"text\":\"You must be the party owner to invite players. \",\"color\":\"dark_gray\"},{\"text\":\"Ask \",\"italic\":true,\"color\":\"dark_gray\"},{\"text\": \"\${owner.username}\", \"color\": \"gold\", \"italic\": true \"clickEvent\": {\"action\": \"suggest_command\", \"value\": \"/msg \${owner.username} \"}, \"hoverEvent\": {\"action\": \"show_text\", \"value\": \"send message\"}},{\"text\":\" to invite players.\",\"italic\":true,\"color\":\"dark_gray\"}",
             val alreadyInParty: String? = "[{\"text\": \"\${player.username}\", \"color\": \"gold\", \"clickEvent\": {\"action\": \"suggest_command\", \"value\": \"/msg \${player.username} \"}, \"hoverEvent\": {\"action\": \"show_text\", \"value\": \"send message\"}}, {\"text\": \" is already in the party.\", \"color\": \"dark_gray\"}]",
             val alreadyRequested: String? = "[{\"text\": \"You have already invited \", \"color\": \"dark_gray\"}, {\"text\": \"\${player.username}\", \"color\": \"gold\", \"clickEvent\": {\"action\": \"suggest_command\", \"value\": \"/msg \${player.username} \"}, \"hoverEvent\": {\"action\": \"show_text\", \"value\": \"send message\"}}, {\"text\": \".\", \"color\": \"dark_gray\"}]",
@@ -322,9 +324,9 @@ class Parties(
         
         @Serializable
         data class Accept(
-            val commandName: String = "invite",
+            val commandName: String = "accept",
             val commandUsage: String? = "[{\"text\": \"Usage: \", \"color\": \"dark_gray\"}, {\"text\": \"/party accept <player>\", \"color\": \"gray\"}]",
-            val playerNotFound: String? = "[{\"text\": \"\${player.username}\", \"color\": \"gold\", \"clickEvent\": {\"action\": \"suggest_command\", \"value\": \"/msg \${player.username} \"}, \"hoverEvent\": {\"action\": \"show_text\", \"value\": \"send message\"}}, {\"text\": \" is not online.\", \"color\": \"dark_gray\"}]",
+            val playerNotFound: String? = "[{\"text\": \"\${player}\", \"color\": \"gold\", \"clickEvent\": {\"action\": \"suggest_command\", \"value\": \"/msg \${player} \"}, \"hoverEvent\": {\"action\": \"show_text\", \"value\": \"send message\"}}, {\"text\": \" is not online.\", \"color\": \"dark_gray\"}]",
             val notInvited: String? = "[{\"text\": \"\${player.username}\", \"color\": \"gold\", \"clickEvent\": {\"action\": \"suggest_command\", \"value\": \"/msg \${player.username} \"}, \"hoverEvent\": {\"action\": \"show_text\", \"value\": \"send message\"}}, {\"text\": \" has not invited you.\", \"color\": \"dark_gray\"}]",
             val inviteAccepted: String? = "[{\"text\": \"You are joining \", \"color\": \"gray\"}, {\"text\": \"\${player.username}\", \"color\": \"gold\", \"clickEvent\": {\"action\": \"suggest_command\", \"value\": \"/msg \${player.username} \"}, \"hoverEvent\": {\"action\": \"show_text\", \"value\": \"send message\"}}, {\"text\": \" party.\", \"color\": \"gray\"}]",
             val newMember: String? = "[{\"text\":\"[\",\"color\":\"dark_aqua\"},{\"text\":\"+\",\"color\":\"green\"},{\"text\":\"] \",\"color\":\"dark_aqua\"},{\"text\": \"\${player.username}\", \"color\": \"aqua\", \"clickEvent\": {\"action\": \"suggest_command\", \"value\": \"/msg \${player.username} \"}, \"hoverEvent\": {\"action\": \"show_text\", \"value\": \"send message\"}}, {\"text\": \" joined the party.\", \"color\": \"dark_aqua\"}]"
@@ -334,7 +336,7 @@ class Parties(
         data class Kick(
             val commandName: String = "kick",
             val commandUsage: String? = "[{\"text\": \"Usage: \", \"color\": \"dark_gray\"}, {\"text\": \"/party kick <player>\", \"color\": \"gray\"}]",
-            val playerNotFound: String? = "[{\"text\": \"\${player.username}\", \"color\": \"gold\", \"clickEvent\": {\"action\": \"suggest_command\", \"value\": \"/msg \${player.username} \"}, \"hoverEvent\": {\"action\": \"show_text\", \"value\": \"send message\"}}, {\"text\": \" is not online.\", \"color\": \"dark_gray\"}]",
+            val playerNotFound: String? = "[{\"text\": \"\${player}\", \"color\": \"gold\", \"clickEvent\": {\"action\": \"suggest_command\", \"value\": \"/msg \${player} \"}, \"hoverEvent\": {\"action\": \"show_text\", \"value\": \"send message\"}}, {\"text\": \" is not online.\", \"color\": \"dark_gray\"}]",
             val notInParty: String? = "{\"text\":\"You are not in a party.\", \"color\":\"dark_gray\"}",
             val notAnOwner: String? = "{\"text\":\"You must be the party owner to kick players. \",\"color\":\"dark_gray\"},{\"text\":\"Ask \",\"italic\":true,\"color\":\"dark_gray\"},{\"text\": \"\${owner.username}\", \"color\": \"gold\", \"italic\": true \"clickEvent\": {\"action\": \"suggest_command\", \"value\": \"/msg \${owner.username} \"}, \"hoverEvent\": {\"action\": \"show_text\", \"value\": \"send message\"}},{\"text\":\" to kick players.\",\"italic\":true,\"color\":\"dark_gray\"}",
             val playerNotInParty: String? = "[{\"text\": \"\${player.username}\", \"color\": \"gold\", \"clickEvent\": {\"action\": \"suggest_command\", \"value\": \"/msg \${player.username} \"}, \"hoverEvent\": {\"action\": \"show_text\", \"value\": \"send message\"}}, {\"text\": \" is not in the party.\", \"color\": \"dark_gray\"}]",
@@ -345,7 +347,7 @@ class Parties(
         
         @Serializable
         data class Leave(
-            val commandName: String = "invite",
+            val commandName: String = "leave",
             val notInParty: String? = "{\"text\":\"You are not in a party.\", \"color\":\"dark_gray\"}",
             val left: String? = "{\"text\": \"You left the party.\", \"color\": \"gray\"}",
             val playerLeft: String? = "[{\"text\":\"[\",\"color\":\"dark_aqua\"},{\"text\":\"-\",\"color\":\"red\"},{\"text\":\"] \",\"color\":\"dark_aqua\"},{\"text\": \"\${player.username}\", \"color\": \"aqua\", \"clickEvent\": {\"action\": \"suggest_command\", \"value\": \"/msg \${player.username} \"}, \"hoverEvent\": {\"action\": \"show_text\", \"value\": \"send message\"}}, {\"text\": \" left the party.\", \"color\": \"dark_aqua\"}]",

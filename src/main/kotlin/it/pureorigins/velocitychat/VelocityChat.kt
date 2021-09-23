@@ -17,8 +17,7 @@ import org.slf4j.Logger
 import java.nio.file.Path
 
 
-@Plugin(id = "velocity-chat", name = "Chat", version = "1.0.0", url = "https://github.com/PureOrigins/VelocityChat",
-    description = "Chat utilities", dependencies = [Dependency(id = "velocity-language-kotlin"), Dependency(id = "velocity-configuration")], authors = ["AgeOfWar", "ekardnamm"])
+@Plugin(id = "velocity-chat", name = "Chat", version = "1.0.0", url = "https://github.com/PureOrigins/VelocityChat", description = "Chat utilities", dependencies = [Dependency(id = "velocity-language-kotlin"), Dependency(id = "velocity-configuration"), Dependency(id = "velocity-friends", optional = true)], authors = ["AgeOfWar"])
 class VelocityChat @Inject constructor(
     val server: ProxyServer,
     val logger: Logger,
@@ -26,16 +25,15 @@ class VelocityChat @Inject constructor(
 ) {
     private val commands get() = server.commandManager
     private val events get() = server.eventManager
-    private val scheduler get() = server.scheduler
     
     @Subscribe
     fun onInit(event: ProxyInitializeEvent) {
         val (msg, party) = json.readFileAs(dataDirectory.resolve("velocity_chat.json"), Config())
         if (party.invite.requestSound != null) logger.warn("party.inviteSound feature is not supported yet")
-        val friends = server.pluginManager.getPlugin("velocity-friends").get().instance.get() as VelocityFriends
+        val friends = server.pluginManager.getPlugin("velocity-friends").orElse(null)?.instance?.orElse(null) as? VelocityFriends
         val parties = Parties(this, friends, party)
         events.register(this, parties)
-        commands.register(PrivateMessageCommand(server, msg))
+        commands.register(PrivateMessageCommand(this, friends, msg))
         commands.register(parties)
     }
     
