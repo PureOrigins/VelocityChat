@@ -7,6 +7,7 @@ import com.velocitypowered.api.plugin.Plugin
 import com.velocitypowered.api.plugin.Dependency
 import com.velocitypowered.api.plugin.annotation.DataDirectory
 import com.velocitypowered.api.proxy.ProxyServer
+import it.pureorigins.velocitychat.chat.Chat
 import it.pureorigins.velocitychat.messages.PrivateMessageCommand
 import it.pureorigins.velocitychat.party.Parties
 import it.pureorigins.velocityconfiguration.json
@@ -28,11 +29,13 @@ class VelocityChat @Inject constructor(
     
     @Subscribe
     fun onInit(event: ProxyInitializeEvent) {
-        val (msg, party) = json.readFileAs(dataDirectory.resolve("velocity_chat.json"), Config())
+        val (msg, chat, party) = json.readFileAs(dataDirectory.resolve("velocity_chat.json"), Config())
         if (party.invite.requestSound != null) logger.warn("party.inviteSound feature is not supported yet")
         val friends = server.pluginManager.getPlugin("velocity-friends").orElse(null)?.instance?.orElse(null) as? VelocityFriends
         val parties = Parties(this, friends, party)
+        val chats = Chat(this, friends, chat)
         events.register(this, parties)
+        events.register(this, chats)
         commands.register(PrivateMessageCommand(this, friends, msg))
         commands.register(parties)
     }
@@ -40,6 +43,7 @@ class VelocityChat @Inject constructor(
     @Serializable
     data class Config(
         val msg: PrivateMessageCommand.Config = PrivateMessageCommand.Config(),
+        val chat: Chat.Config = Chat.Config(),
         val party: Parties.Config = Parties.Config()
     )
 }
